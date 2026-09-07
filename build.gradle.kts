@@ -20,14 +20,9 @@ dependencies {
     // Paper 26.2 API (последний stable — 26.2.build.121-stable)
     compileOnly("io.papermc.paper:paper-api:26.2.build.121-stable")
 
-    // SnakeYAML для ручного чтения YAML (Bukkit/Paper поставляют его в classpath,
-    // но мы явно объявляем, чтобы IDE и shade знали)
-    compileOnly("org.yaml:snakeyaml:2.2")
-
     // JUnit для smoke-тестов конфигурации
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("org.yaml:snakeyaml:2.2")
 }
 
 tasks.test {
