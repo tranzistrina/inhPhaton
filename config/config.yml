@@ -1,0 +1,37 @@
+# inhPhaton — Боги
+# Конфигурация персональной видимости и фантомных мобов
+
+# Лимиты
+limits:
+  # Максимум фантомов на одного игрока
+  max-phantoms-per-player: 25
+  # Глобальный лимит фантомов
+  global-phantom-limit: 500
+  # TTL фантома по умолчанию (сек); 0 = бесконечно
+  default-ttl-seconds: 0
+  # Радиус загрузки фантомов вокруг игрока (блоки)
+  load-radius: 64
+  # Радиус, на котором фантомы выгружаются
+  unload-radius: 80
+
+# Поведение
+behavior:
+  # Автоматическая очистка по TTL (в главном тике)
+  auto-cleanup: true
+  # Интервал очистки (тиков, 20 = 1 сек)
+  cleanup-interval-ticks: 100
+  # Сохранять ли активные состояния при /reload
+  preserve-on-reload: false
+  # Поведение после рестарта сервера
+  after-restart-policy: drop   # drop | restore
+  # Логировать создание/удаление
+  log-events: true
+  # Debug-режим по умолчанию
+  debug: false
+
+# Пакетная часть
+packets:
+  # Максимум фантомов, отправляемых игроку за один batch tick
+  spawn-batch-size: 16
+  # Задержка между батчами (тиков)
+  spawn-batch-delay-ticks: 1
