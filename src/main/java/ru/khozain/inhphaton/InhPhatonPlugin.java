@@ -53,6 +53,7 @@ public final class InhPhatonPlugin extends JavaPlugin {
 
         this.godCommand = new GodCommand(this);
         this.godCommand.register();
+        this.phantomManager.restore();
 
         getServer().getPluginManager().registerEvents(shutdownCleaner, this);
 
@@ -67,9 +68,14 @@ public final class InhPhatonPlugin extends JavaPlugin {
         try {
             if (godCommand != null) godCommand.unregister();
             if (shutdownCleaner != null) shutdownCleaner.shutdown();
-            if (scenarioService != null) scenarioService.shutdown();
+            boolean preservePhantoms = config != null && config.getAfterRestartPolicy() == PluginConfig.AfterRestartPolicy.RESTORE;
+            if (preservePhantoms) {
+                if (phantomManager != null) phantomManager.save();
+            } else {
+                if (scenarioService != null) scenarioService.shutdown();
+                if (phantomManager != null) phantomManager.shutdown(false);
+            }
             if (effectManager != null) effectManager.shutdown();
-            if (phantomManager != null) phantomManager.shutdown();
             if (visibilityManager != null) visibilityManager.shutdown();
         } catch (Throwable t) {
             LOG.warn("Error during shutdown: {}", t.getMessage());
