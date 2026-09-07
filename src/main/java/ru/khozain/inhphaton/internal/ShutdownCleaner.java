@@ -28,7 +28,9 @@ public final class ShutdownCleaner implements Listener {
             @Override public void run(){
                 if(!plugin.config().isAutoCleanup())return;
                 int removed=plugin.phantoms().cleanupByTtl();
-                if(removed>0&&plugin.config().isLogEvents())LOG.info("auto-cleanup removed {} phantoms",removed);
+                int scenarios=plugin.scenarios().cleanupExpired();
+                if((removed>0||scenarios>0)&&plugin.config().isLogEvents())
+                    LOG.info("auto-cleanup removed {} phantoms and {} scenarios",removed,scenarios);
             }
         };
         cleanupTask.runTaskTimer(plugin,plugin.config().getCleanupIntervalTicks(),plugin.config().getCleanupIntervalTicks());
