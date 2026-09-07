@@ -23,6 +23,17 @@ public final class ScenarioService {
     public boolean removeScenario(@NotNull UUID scenarioId){Scenario s=byId(scenarioId);if(s==null)return false;scenarios.remove(s);plugin.phantoms().remove(s.phantom().id());return true;}
     public boolean removeAll(@NotNull UUID ownerId){boolean changed=false;for(Scenario s:new LinkedHashSet<>(scenarios))if(ownerId.equals(s.ownerId())){removeScenario(s.id());changed=true;}return changed;}
     public void playEffectTo(@NotNull UUID scenarioId,@NotNull UUID playerId,@NotNull String effectId,@NotNull PersonalEffect effect){if(byId(scenarioId)!=null)plugin.effects().playTo(playerId,effectId,effect);}
+    public int cleanupExpired(){
+        int removed=0;
+        for(Scenario s:new LinkedHashSet<>(scenarios)){
+            if(s.isExpired() || !plugin.phantoms().exists(s.phantom().id())){
+                scenarios.remove(s);
+                if(plugin.phantoms().exists(s.phantom().id()))plugin.phantoms().remove(s.phantom().id());
+                removed++;
+            }
+        }
+        return removed;
+    }
     public void shutdown(){for(Scenario s:new LinkedHashSet<>(scenarios))plugin.phantoms().remove(s.phantom().id());scenarios.clear();}
     public Set<Scenario> all(){return new LinkedHashSet<>(scenarios);}
     public @Nullable Scenario byId(UUID id){for(Scenario s:scenarios)if(s.id().equals(id))return s;return null;}
