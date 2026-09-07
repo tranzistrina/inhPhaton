@@ -22,8 +22,9 @@ public final class PhantomManager {
     private final InhPhatonPlugin plugin;
     private final Map<UUID,PhantomInstance> phantoms=new ConcurrentHashMap<>();
     private final Map<UUID,Set<UUID>> byObserver=new ConcurrentHashMap<>();
+    private final PhantomPersistence persistence;
 
-    public PhantomManager(InhPhatonPlugin plugin){this.plugin=plugin;}
+    public PhantomManager(InhPhatonPlugin plugin){this.plugin=plugin;this.persistence=new PhantomPersistence(plugin);}
 
     public @Nullable PhantomInstance create(@NotNull PhantomSpec spec){
         if(!canCreate(spec))return null;
@@ -34,6 +35,7 @@ public final class PhantomManager {
         catch(Throwable t){plugin.getLogger().warning("[phantom] entity spawn failed: "+t.getMessage());return null;}
         configure(backing,spec);
         for(Player p:Bukkit.getOnlinePlayers())p.hideEntity(plugin,backing);
+        persistence.mark(backing,spec);
 
         PhantomInstance inst=new PhantomInstance(plugin,spec);
         inst.setBackingEntity(backing);
@@ -97,7 +99,36 @@ public final class PhantomManager {
         for(UUID pid:new LinkedHashSet<>(ids)){PhantomInstance inst=phantoms.get(pid);if(inst==null)continue;inst.removeObserver(playerId);if(destroy){phantoms.remove(pid);inst.remove();n++;}}
         return n;
     }
-    public void shutdown(){for(PhantomInstance inst:new LinkedHashSet<>(phantoms.values()))inst.remove();phantoms.clear();byObserver.clear();}
+    public void shutdown(){shutdown(false);}
+    public void shutdown(boolean preserve){
+        if(preserve){persistence.save(all());phantoms.clear();byObserver.clear();return;}
+        for(PhantomInstance inst:new LinkedHashSet<>(phantoms.values()))inst.remove();
+        phantoms.clear();byObserver.clear();persistence.clear();
+    }
+    public void save(){persistence.save(all());}
+    public int restore(){
+        if(plugin.config().getAfterRestartPolicy()!=ru.khozain.inhphaton.config.PluginConfig.AfterRestartPolicy.RESTORE)return 0;
+        int restored=0;
+        for(PhantomPersistence.StoredPhantom stored:persistence.load()){
+            if(stored.ttlSeconds()>0 && System.currentTimeMillis()-stored.createdAtMs()>stored.ttlSeconds()*1000L)continue;
+            Entity backing=null;
+            for(Entity e:stored.location().getWorld().getEntities()){
+                String id=e.getPersistentDataContainer().get(persistence.idKey(),org.bukkit.persistence.PersistentDataType.STRING);
+                if(stored.id().toString().equals(id)){backing=e;break;}
+            }
+            PhantomSpec spec=PhantomSpec.builder().id(stored.id()).createdAtMs(stored.createdAtMs()).entityType(stored.type()).location(stored.location()).ttlSeconds(stored.ttlSeconds()).ownerId(stored.ownerId()).build();
+            PhantomInstance inst=new PhantomInstance(plugin,spec);inst.setBackingEntity(backing);
+            if(backing==null){try{backing=stored.location().getWorld().spawnEntity(stored.location(),stored.type());configure(backing,spec);persistence.mark(backing,spec);inst.setBackingEntity(backing);}catch(Throwable t){continue;}}
+            for(Player p:Bukkit.getOnlinePlayers())p.hideEntity(plugin,backing);
+            phantoms.put(spec.getId(),inst);
+            for(UUID observer:stored.observers()){inst.observers().add(observer);byObserver.computeIfAbsent(observer,k->ConcurrentHashMap.newKeySet()).add(spec.getId());Player p=Bukkit.getPlayer(observer);if(p!=null&&backing!=null&&!backing.isDead()&&p.getWorld()==backing.getWorld()&&p.getLocation().distanceSquared(backing.getLocation())<=plugin.config().getLoadRadius()*plugin.config().getLoadRadius())p.showEntity(plugin,backing);}
+            restored++;
+        }
+        persistence.clear();
+        if(restored>0)plugin.getLogger().info("[phantom] restored "+restored+" phantom(s)");
+        return restored;
+    }
+    public void persistForReload(){persistence.save(all());}
     public void onConfigReload(boolean preserve){if(!preserve)shutdown();}
     public int cleanupByTtl(){long now=System.currentTimeMillis();int n=0;for(UUID id:new LinkedHashSet<>(phantoms.keySet())){PhantomInstance inst=phantoms.get(id);if(inst!=null&&inst.spec().isExpired(now)){remove(id);n++;}}return n;}
     public Set<UUID> observersOf(UUID phantomId){PhantomInstance inst=phantoms.get(phantomId);return inst==null?Collections.emptySet():Collections.unmodifiableSet(inst.observers());}
