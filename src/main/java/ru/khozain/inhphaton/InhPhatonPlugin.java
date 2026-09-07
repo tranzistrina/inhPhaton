@@ -80,8 +80,8 @@ public final class InhPhatonPlugin extends JavaPlugin {
     }
 
     public void reload() {
-        boolean preserve = config.isPreserveOnReload();
         this.config = PluginConfig.loadOrDefault(this);
+        boolean preserve = config.isPreserveOnReload();
         this.debugManager.setEnabled(config.isDebug());
         this.phantomManager.onConfigReload(preserve);
         this.visibilityManager.onConfigReload(preserve);
