@@ -1,22 +1,11 @@
 name: ${name}
 version: '${version}'
 main: ru.khozain.inhphaton.InhPhatonPlugin
-api-version: '1.21'
+api-version: '26.2'
 description: 'inhPhaton — Боги: персональная реальность и фантомные мобы для Paper 26.2'
 authors:
   - inh
 website: https://inhlab.local
-
-commands:
-  god:
-    description: 'Корневая команда системы «Боги»'
-    aliases: [gods, боги]
-    usage: |
-      /god phantom <create|remove|move|show|hide>
-      /god visibility <only|except>
-      /god debug
-      /god reload
-    permission: god.admin
 
 permissions:
   god.admin:
