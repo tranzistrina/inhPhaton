@@ -9,6 +9,7 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +32,13 @@ public final class ShutdownCleaner implements Listener {
             }
         };
         cleanupTask.runTaskTimer(plugin,plugin.config().getCleanupIntervalTicks(),plugin.config().getCleanupIntervalTicks());
+    }
+
+    @EventHandler(priority=EventPriority.MONITOR)
+    public void onChunkLoad(ChunkLoadEvent e){
+        for(org.bukkit.entity.Entity entity:e.getChunk().getEntities()){
+            plugin.phantoms().rebindEntity(entity);
+        }
     }
 
     @EventHandler(priority=EventPriority.MONITOR)
