@@ -1,15 +1,15 @@
 package ru.khozain.inhphaton.config;
 
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 public final class PluginConfig {
     private static final Logger LOG=LoggerFactory.getLogger("inhPhaton.config");
@@ -18,6 +18,7 @@ public final class PluginConfig {
     private final long cleanupIntervalTicks;
     private final AfterRestartPolicy afterRestartPolicy;
     private final int spawnBatchSize,spawnBatchDelayTicks;
+
     public enum AfterRestartPolicy { DROP, RESTORE }
 
     private PluginConfig(Builder b){
@@ -33,45 +34,43 @@ public final class PluginConfig {
         try{
             if(!Files.exists(file)){
                 plugin.getDataFolder().mkdirs();
-                Files.writeString(file,defaultYaml());
+                Files.writeString(file,defaultYaml(),StandardCharsets.UTF_8);
                 LOG.info("Created default config.yml");
             }
-            try(InputStreamReader r=new InputStreamReader(Files.newInputStream(file),StandardCharsets.UTF_8)){
-                Map<String,Object> root=new Yaml().load(r);
-                return parse(root==null?Map.of():root);
-            }
+            return parse(YamlConfiguration.loadConfiguration(file.toFile()));
         }catch(Throwable t){
             LOG.warn("Failed to load config.yml, falling back to defaults: {}",t.getMessage());
             return Builder.defaults().build();
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static PluginConfig parse(Map<String,Object> root){
-        try{
-            Map<String,Object> limits=(Map<String,Object>)root.getOrDefault("limits",Map.of());
-            Map<String,Object> behavior=(Map<String,Object>)root.getOrDefault("behavior",Map.of());
-            Map<String,Object> packets=(Map<String,Object>)root.getOrDefault("packets",Map.of());
-            Builder b=new Builder();
-            b.maxPhantomsPerPlayer=Math.max(1,intOr(limits,"max-phantoms-per-player",25));
-            b.globalPhantomLimit=Math.max(1,intOr(limits,"global-phantom-limit",500));
-            b.defaultTtlSeconds=Math.max(0,intOr(limits,"default-ttl-seconds",0));
-            b.loadRadius=Math.max(1,intOr(limits,"load-radius",64));
-            b.unloadRadius=Math.max(b.loadRadius,intOr(limits,"unload-radius",80));
-            b.autoCleanup=boolOr(behavior,"auto-cleanup",true);
-            b.cleanupIntervalTicks=Math.max(1,longOr(behavior,"cleanup-interval-ticks",100));
-            b.preserveOnReload=boolOr(behavior,"preserve-on-reload",false);
-            String policy=String.valueOf(behavior.getOrDefault("after-restart-policy","drop")).toLowerCase();
-            b.afterRestartPolicy="restore".equals(policy)?AfterRestartPolicy.RESTORE:AfterRestartPolicy.DROP;
-            b.logEvents=boolOr(behavior,"log-events",true); b.debug=boolOr(behavior,"debug",false);
-            b.spawnBatchSize=Math.max(1,intOr(packets,"spawn-batch-size",16));
-            b.spawnBatchDelayTicks=Math.max(1,intOr(packets,"spawn-batch-delay-ticks",1));
-            return b.build();
-        }catch(Throwable t){ LOG.warn("Config parse error, using defaults: {}",t.getMessage()); return Builder.defaults().build(); }
+    private static PluginConfig parse(YamlConfiguration root){
+        Builder b=new Builder();
+        ConfigurationSection limits=root.getConfigurationSection("limits");
+        ConfigurationSection behavior=root.getConfigurationSection("behavior");
+        ConfigurationSection packets=root.getConfigurationSection("packets");
+        b.maxPhantomsPerPlayer=Math.max(1,intOr(limits,"max-phantoms-per-player",25));
+        b.globalPhantomLimit=Math.max(1,intOr(limits,"global-phantom-limit",500));
+        b.defaultTtlSeconds=Math.max(0,intOr(limits,"default-ttl-seconds",0));
+        b.loadRadius=Math.max(1,intOr(limits,"load-radius",64));
+        b.unloadRadius=Math.max(b.loadRadius,intOr(limits,"unload-radius",80));
+        b.autoCleanup=boolOr(behavior,"auto-cleanup",true);
+        b.cleanupIntervalTicks=Math.max(1,longOr(behavior,"cleanup-interval-ticks",100));
+        b.preserveOnReload=boolOr(behavior,"preserve-on-reload",false);
+        String policy=stringOr(behavior,"after-restart-policy","drop");
+        b.afterRestartPolicy="restore".equalsIgnoreCase(policy)?AfterRestartPolicy.RESTORE:AfterRestartPolicy.DROP;
+        b.logEvents=boolOr(behavior,"log-events",true);
+        b.debug=boolOr(behavior,"debug",false);
+        b.spawnBatchSize=Math.max(1,intOr(packets,"spawn-batch-size",16));
+        b.spawnBatchDelayTicks=Math.max(1,intOr(packets,"spawn-batch-delay-ticks",1));
+        return b.build();
     }
-    private static int intOr(Map<String,Object> m,String k,int d){Object v=m.get(k);return v instanceof Number n?n.intValue():d;}
-    private static long longOr(Map<String,Object> m,String k,long d){Object v=m.get(k);return v instanceof Number n?n.longValue():d;}
-    private static boolean boolOr(Map<String,Object> m,String k,boolean d){Object v=m.get(k);return v instanceof Boolean b?b:d;}
+
+    private static int intOr(ConfigurationSection s,String k,int d){return s==null?d:s.getInt(k,d);}
+    private static long longOr(ConfigurationSection s,String k,long d){return s==null?d:s.getLong(k,d);}
+    private static boolean boolOr(ConfigurationSection s,String k,boolean d){return s==null?d:s.getBoolean(k,d);}
+    private static String stringOr(ConfigurationSection s,String k,String d){return s==null?d:s.getString(k,d);}
+
     private static String defaultYaml(){return """
 # inhPhaton — Боги
 limits:
@@ -91,16 +90,26 @@ packets:
   spawn-batch-size: 16
   spawn-batch-delay-ticks: 1
 """;}
-    public int getMaxPhantomsPerPlayer(){return maxPhantomsPerPlayer;} public int getGlobalPhantomLimit(){return globalPhantomLimit;}
-    public int getDefaultTtlSeconds(){return defaultTtlSeconds;} public int getLoadRadius(){return loadRadius;} public int getUnloadRadius(){return unloadRadius;}
-    public boolean isAutoCleanup(){return autoCleanup;} public long getCleanupIntervalTicks(){return cleanupIntervalTicks;}
-    public boolean isPreserveOnReload(){return preserveOnReload;} public AfterRestartPolicy getAfterRestartPolicy(){return afterRestartPolicy;}
-    public boolean isLogEvents(){return logEvents;} public boolean isDebug(){return debug;}
-    public int getSpawnBatchSize(){return spawnBatchSize;} public int getSpawnBatchDelayTicks(){return spawnBatchDelayTicks;}
+
+    public int getMaxPhantomsPerPlayer(){return maxPhantomsPerPlayer;}
+    public int getGlobalPhantomLimit(){return globalPhantomLimit;}
+    public int getDefaultTtlSeconds(){return defaultTtlSeconds;}
+    public int getLoadRadius(){return loadRadius;}
+    public int getUnloadRadius(){return unloadRadius;}
+    public boolean isAutoCleanup(){return autoCleanup;}
+    public long getCleanupIntervalTicks(){return cleanupIntervalTicks;}
+    public boolean isPreserveOnReload(){return preserveOnReload;}
+    public AfterRestartPolicy getAfterRestartPolicy(){return afterRestartPolicy;}
+    public boolean isLogEvents(){return logEvents;}
+    public boolean isDebug(){return debug;}
+    public int getSpawnBatchSize(){return spawnBatchSize;}
+    public int getSpawnBatchDelayTicks(){return spawnBatchDelayTicks;}
+
     public static final class Builder{
         int maxPhantomsPerPlayer=25,globalPhantomLimit=500,defaultTtlSeconds=0,loadRadius=64,unloadRadius=80;
         boolean autoCleanup=true,preserveOnReload=false,logEvents=true,debug=false; long cleanupIntervalTicks=100;
         AfterRestartPolicy afterRestartPolicy=AfterRestartPolicy.DROP; int spawnBatchSize=16,spawnBatchDelayTicks=1;
-        public static Builder defaults(){return new Builder();} public PluginConfig build(){return new PluginConfig(this);}
+        public static Builder defaults(){return new Builder();}
+        public PluginConfig build(){return new PluginConfig(this);}
     }
 }
