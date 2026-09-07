@@ -94,6 +94,18 @@ public final class PhantomManager {
         }
     }
     public void move(@NotNull UUID id,@NotNull Location newLoc){PhantomInstance inst=phantoms.get(id);if(inst!=null)inst.teleport(newLoc);}
+    public void rebindEntity(@NotNull Entity entity){
+        String raw=entity.getPersistentDataContainer().get(persistence.idKey(),org.bukkit.persistence.PersistentDataType.STRING);
+        if(raw==null)return;
+        try{
+            UUID id=UUID.fromString(raw);
+            PhantomInstance inst=phantoms.get(id);
+            if(inst!=null){
+                inst.setBackingEntity(entity);
+                for(Player p:Bukkit.getOnlinePlayers())p.hideEntity(plugin,entity);
+            }
+        }catch(IllegalArgumentException ignored){}
+    }
     public int clearForPlayer(@NotNull UUID playerId,boolean destroy){
         Set<UUID> ids=byObserver.remove(playerId);if(ids==null||ids.isEmpty())return 0;int n=0;
         for(UUID pid:new LinkedHashSet<>(ids)){PhantomInstance inst=phantoms.get(pid);if(inst==null)continue;inst.removeObserver(playerId);if(destroy){phantoms.remove(pid);inst.remove();n++;}}
