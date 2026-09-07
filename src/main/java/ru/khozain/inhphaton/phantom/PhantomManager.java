@@ -55,7 +55,7 @@ public final class PhantomManager {
             living.setAI(false);
             living.setCollidable(false);
         }
-        e.setPersistent(false);
+        e.setPersistent(true);
     }
 
     public boolean canCreate(@NotNull PhantomSpec spec){
