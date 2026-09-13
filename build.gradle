@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'ru.inh'
+version = '1.0.0'
+
+def paperLibrariesDir = findProperty('paperLibrariesDir') ?: System.getenv('PAPER_LIBRARIES_DIR') ?: '../inhMOBS/libraries'
+
+dependencies {
+    compileOnly fileTree(dir: paperLibrariesDir, includes: ['**/*.jar'])
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+jar {
+    archiveBaseName = 'inhPhaton'
+}

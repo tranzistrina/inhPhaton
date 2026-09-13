@@ -1,0 +1,9 @@
+build/
+.gradle/
+.DS_Store
+plugins/*/
+plugins/*.jar
+!plugins/inhPhaton.jar
+dist/*.jar
+!dist/
+!dist/inhPhaton-*.jar

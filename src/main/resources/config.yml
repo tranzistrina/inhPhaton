@@ -1,0 +1,11 @@
+limits:
+  max-phantoms-per-player: 32
+  max-phantoms-global: 256
+  default-ttl-seconds: 0
+  load-radius: 128.0
+logging:
+  debug: false
+cleanup:
+  automatic: true
+persistence:
+  restore-after-restart: true

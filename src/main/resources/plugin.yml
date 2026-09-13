@@ -1,0 +1,30 @@
+name: inhPhaton
+version: '1.0.0'
+main: ru.inh.gods.GodsPlugin
+api-version: '26.2'
+author: Inh
+description: Персональная реальность, фантомы и божественные явления
+
+commands:
+  god:
+    description: Управление персональной реальностью и фантомами
+    usage: /god <phantom|visibility|debug|reload|list>
+    permission: god.admin
+    aliases: [gods, inhPhaton]
+
+permissions:
+  god.admin:
+    description: Полный доступ к Gods
+    default: op
+  god.phantom:
+    description: Создание и управление фантомами
+    default: op
+  god.visibility:
+    description: Управление персональной видимостью
+    default: op
+  god.debug:
+    description: Диагностика Gods
+    default: op
+  god.reload:
+    description: Перезагрузка Gods
+    default: op
