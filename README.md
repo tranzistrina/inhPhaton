@@ -31,7 +31,7 @@ The stable Bukkit implementation hides server entities from non-observers and sh
 /inhPhaton reload
 ```
 
-The command is also available through the alias `/god`.
+The command is registered through Paper 26.2's `JavaPlugin#registerCommand` API, so it does not depend on YAML command declarations and works for Paper plugin loading. It is also available through the aliases `/god` and `/gods`.
 
 ## Build
 

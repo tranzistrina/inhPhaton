@@ -19,6 +19,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,10 +45,7 @@ public final class GodsPlugin extends JavaPlugin implements Listener, CommandExe
         api = new GodsApi(manager);
         getServer().getServicesManager().register(GodsApi.class, api, this, ServicePriority.Normal);
         getServer().getPluginManager().registerEvents(this, this);
-        if (getCommand("god") != null) {
-            getCommand("god").setExecutor(this);
-            getCommand("god").setTabCompleter(this);
-        }
+        registerGodCommand();
         manager.start();
         getLogger().info("Gods включён: персональная видимость и фантомы готовы.");
     }
@@ -59,6 +58,25 @@ public final class GodsPlugin extends JavaPlugin implements Listener, CommandExe
 
     public GodsApi api() {
         return api;
+    }
+
+    /**
+     * Paper 26.2 запускает Paper plugins без Bukkit YAML-команд.
+     * Регистрируем команду через официальный Paper API; игровая логика
+     * по-прежнему использует только Bukkit-сущности, события и сервисы.
+     */
+    private void registerGodCommand() {
+        registerCommand("god", List.of("gods", "inhPhaton"), new BasicCommand() {
+            @Override
+            public void execute(CommandSourceStack source, String[] args) {
+                GodsPlugin.this.onCommand(source.getSender(), null, "god", args);
+            }
+
+            @Override
+            public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+                return GodsPlugin.this.onTabComplete(source.getSender(), null, "god", args);
+            }
+        });
     }
 
     @EventHandler
